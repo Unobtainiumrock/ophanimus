@@ -1,4 +1,4 @@
-"""Smoke tests for manifold_helpers.algorithms.
+"""Smoke tests for ophanimus.algorithms.
 
 One test per algorithm. Optimization-based tests use fixed seeds so they
 don't flake. Each test pins the algorithm against a manifold (typically
@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from manifold_helpers.manifolds import sphere, poincare
-from manifold_helpers.algorithms import (
+from ophanimus.manifolds import sphere, poincare
+from ophanimus.algorithms import (
     frechet_mean,
     geodesic_regression,
     kmeans,

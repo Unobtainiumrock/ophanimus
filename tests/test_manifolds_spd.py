@@ -1,9 +1,9 @@
-"""Property tests for manifold_helpers.manifolds.spd."""
+"""Property tests for ophanimus.manifolds.spd."""
 from __future__ import annotations
 
 import numpy as np
 
-from manifold_helpers.manifolds import spd
+from ophanimus.manifolds import spd
 from conftest import random_spd
 
 

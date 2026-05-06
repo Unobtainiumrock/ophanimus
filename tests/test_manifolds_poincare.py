@@ -1,9 +1,9 @@
-"""Property tests for manifold_helpers.manifolds.poincare."""
+"""Property tests for ophanimus.manifolds.poincare."""
 from __future__ import annotations
 
 import numpy as np
 
-from manifold_helpers.manifolds import poincare
+from ophanimus.manifolds import poincare
 from conftest import random_poincare_point
 
 

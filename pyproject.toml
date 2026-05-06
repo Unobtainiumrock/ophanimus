@@ -3,7 +3,7 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "manifold-helpers"
+name = "ophanimus"
 version = "0.1.0"
 description = "Riemannian manifold primitives and geodesic algorithms"
 readme = "README.md"

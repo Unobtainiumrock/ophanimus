@@ -1,4 +1,4 @@
-# Manifold Helpers
+# Ophanimus
 
 **Riemannian manifold primitives and geodesic algorithms** — pure geometry, no retrieval stack, no vector DB, no training loops for text embeddings.
 
@@ -8,11 +8,11 @@
 pip install .          # or: pip install -e .  for development
 ```
 
-Import the **`manifold_helpers`** package (PyPI name: `manifold-helpers`).
+Import the **`ophanimus`** package (PyPI name: `ophanimus`).
 
 ```python
-from manifold_helpers.manifolds import poincare, hyperboloid
-from manifold_helpers.algorithms import geodesic_regression
+from ophanimus.manifolds import poincare, hyperboloid
+from ophanimus.algorithms import geodesic_regression
 ```
 
 Layout follows the standard **`src/`** layout so the package is what gets installed, not stray repo files.
@@ -22,7 +22,7 @@ Layout follows the standard **`src/`** layout so the package is what gets instal
 ```
 ├── pyproject.toml
 ├── src/
-│   └── manifold_helpers/
+│   └── ophanimus/
 │       ├── manifolds/              # Riemannian manifold primitives
 │       │   ├── sphere.py           #   Unit sphere S^n
 │       │   ├── poincare.py         #   Poincaré ball D^n (variable curvature)
@@ -51,7 +51,7 @@ Each manifold module exposes four primitives:
 
 ## Geodesic Regression
 
-`manifold_helpers/algorithms/regression.py` provides `geodesic_regression(X, Y, exp_map, log_map, distance, parallel_transport)` which fits the model:
+`ophanimus/algorithms/regression.py` provides `geodesic_regression(X, Y, exp_map, log_map, distance, parallel_transport)` which fits the model:
 
 ```
 ŷ_i = Exp_p(x_i · v)
@@ -60,8 +60,8 @@ Each manifold module exposes four primitives:
 This is the manifold analogue of `y = p + x·v`. It works with any manifold — just pass in the three primitives:
 
 ```python
-from manifold_helpers.manifolds import sphere
-from manifold_helpers.algorithms import geodesic_regression
+from ophanimus.manifolds import sphere
+from ophanimus.algorithms import geodesic_regression
 
 p, v, losses = geodesic_regression(X, Y,
     sphere.exp_map, sphere.log_map, sphere.distance, sphere.parallel_transport)
@@ -89,7 +89,7 @@ In practice: train on the hyperboloid, convert to Poincaré for display.
 ### Converting between models
 
 ```python
-from manifold_helpers.manifolds.hyperboloid import from_poincare, to_poincare
+from ophanimus.manifolds.hyperboloid import from_poincare, to_poincare
 
 # Hyperboloid (n+1 dims) -> Poincaré ball (n dims)
 p = to_poincare(x)   # x[0] is the time component, x[1:] are spatial
@@ -115,7 +115,7 @@ center of the Poincaré ball (p = 0) maps to the base of the hyperboloid
 The Poincaré ball has a curvature parameter `c` (where K = -c) that controls how aggressively the space expands outward. All four functions in `poincare.py` accept `c` as an optional parameter (defaults to 1.0):
 
 ```python
-from manifold_helpers.manifolds import poincare
+from ophanimus.manifolds import poincare
 
 # Fixed curvature
 d = poincare.distance(u, v, c=2.0)
@@ -128,7 +128,7 @@ To learn c alongside p and v in geodesic regression, wrap the Poincaré operatio
 
 ```python
 import numpy as np
-from manifold_helpers.manifolds import poincare
+from ophanimus.manifolds import poincare
 
 
 def learn_curvature(X, Y, lr=1e-3, lr_c=1e-4, steps=1000):
@@ -188,7 +188,7 @@ Key details:
 
 ## Defining New Manifolds
 
-To add a new manifold to `src/manifold_helpers/manifolds/`, you need to derive and implement the same three primitives: `exp_map`, `log_map`, and `distance`. This follows a four-step pipeline from differential geometry.
+To add a new manifold to `src/ophanimus/manifolds/`, you need to derive and implement the same three primitives: `exp_map`, `log_map`, and `distance`. This follows a four-step pipeline from differential geometry.
 
 ### Step 1: Define the Space and the Metric
 
@@ -238,13 +238,13 @@ For simple manifolds this also has a closed form. For complex ones, use a BVP so
 
 ### Adding a new manifold to this codebase
 
-1. Create `src/manifold_helpers/manifolds/your_manifold.py`
+1. Create `src/ophanimus/manifolds/your_manifold.py`
 2. Implement `exp_map(p, v)`, `log_map(p, q)`, `distance(p, q)` following the steps above
 3. Register the submodule in `manifolds/__init__.py` (see existing entries)
 4. It will work immediately with `geodesic_regression`:
 
 ```python
-from manifold_helpers.manifolds import your_manifold
+from ophanimus.manifolds import your_manifold
 p, v, losses = geodesic_regression(X, Y, your_manifold.exp_map, your_manifold.log_map, your_manifold.distance)
 ```
 
@@ -270,7 +270,7 @@ This makes the framework extensible to any Riemannian manifold, even exotic ones
 
 ## Manifold Selection
 
-`manifold_helpers/manifold_selection.py` helps you determine which geometry fits your data best. The full pipeline takes raw data through to a geometry recommendation:
+`ophanimus/manifold_selection.py` helps you determine which geometry fits your data best. The full pipeline takes raw data through to a geometry recommendation:
 
 ```
 Raw Data ──► Clean ──► Distance Matrix ──► select_manifold() ──► Recommendation
@@ -289,19 +289,19 @@ Everything starts from a pairwise distance matrix — an NxN table that says "ho
 
 **From feature vectors** (embeddings, sensor readings, tabular data):
 ```python
-from manifold_helpers.manifold_selection import distance_from_features
+from ophanimus.manifold_selection import distance_from_features
 D = distance_from_features(X, metric="cosine")  # or "euclidean", "correlation"
 ```
 
 **From a graph** (social network, taxonomy, knowledge graph):
 ```python
-from manifold_helpers.manifold_selection import distance_from_graph
+from ophanimus.manifold_selection import distance_from_graph
 D = distance_from_graph(adj_matrix, weighted=False)  # BFS shortest paths
 ```
 
 **From a similarity matrix** (co-occurrence, transition probabilities, ratings):
 ```python
-from manifold_helpers.manifold_selection import distance_from_similarity
+from ophanimus.manifold_selection import distance_from_similarity
 D = distance_from_similarity(S, method="neglog")  # or "subtract", "inverse"
 ```
 
@@ -328,7 +328,7 @@ Before constructing the distance matrix:
 ### What select_manifold Returns
 
 ```python
-from manifold_helpers.manifold_selection import select_manifold
+from ophanimus.manifold_selection import select_manifold
 
 result = select_manifold(D, dim=10)
 ```
@@ -377,10 +377,10 @@ Euclidean version, replace Euclidean operations with manifold primitives.
       └───────────┘
 ```
 
-All downstream tasks live in `manifold_helpers/algorithms/`:
+All downstream tasks live in `ophanimus/algorithms/`:
 
 ```
-manifold_helpers/algorithms/
+ophanimus/algorithms/
 ├── frechet_mean.py     # Manifold centroid (used by regression + clustering)
 ├── regression.py       # Geodesic regression
 ├── clustering.py       # Manifold k-means (Fréchet mean per cluster)
@@ -395,8 +395,8 @@ Each algorithm takes manifold primitives as arguments, so they work with
 any geometry:
 
 ```python
-from manifold_helpers.algorithms.clustering import kmeans
-from manifold_helpers.manifolds import poincare
+from ophanimus.algorithms.clustering import kmeans
+from ophanimus.manifolds import poincare
 
 labels, centers = kmeans(points, k=5,
     exp_map=poincare.exp_map,

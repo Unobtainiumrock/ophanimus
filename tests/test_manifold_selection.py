@@ -1,4 +1,4 @@
-"""Tests for manifold_helpers.manifold_selection.
+"""Tests for ophanimus.manifold_selection.
 
 Covers:
   - distance_from_features (scipy pdist+squareform path)
@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from manifold_helpers.manifold_selection import (
+from ophanimus.manifold_selection import (
     distance_from_features,
     distance_from_graph,
     distance_from_similarity,

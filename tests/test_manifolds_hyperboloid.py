@@ -1,9 +1,9 @@
-"""Property tests for manifold_helpers.manifolds.hyperboloid."""
+"""Property tests for ophanimus.manifolds.hyperboloid."""
 from __future__ import annotations
 
 import numpy as np
 
-from manifold_helpers.manifolds import hyperboloid
+from ophanimus.manifolds import hyperboloid
 from conftest import random_hyperboloid_point, random_hyperboloid_tangent, random_poincare_point
 
 
@@ -60,7 +60,7 @@ def test_distance_proportional_to_poincare(rng):
 
     TODO (item 5 follow-up): standardize on one convention.
     """
-    from manifold_helpers.manifolds import poincare
+    from ophanimus.manifolds import poincare
     ratios = []
     for _ in range(10):
         p_poin = random_poincare_point(rng)

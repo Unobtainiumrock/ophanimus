@@ -1,4 +1,4 @@
-"""Shared fixtures for the manifold-helpers test suite.
+"""Shared fixtures for the ophanimus test suite.
 
 Most tests use deterministic seeds (np.random.default_rng(0)) so that
 optimization-based algorithms (kmeans, regression, embeddings) don't
@@ -51,7 +51,7 @@ def random_poincare_point(rng: np.random.Generator, dim: int = 3, max_norm: floa
 
 def random_hyperboloid_point(rng: np.random.Generator, dim: int = 3) -> np.ndarray:
     """Sample a hyperboloid point via Poincaré -> hyperboloid conversion."""
-    from manifold_helpers.manifolds.hyperboloid import from_poincare
+    from ophanimus.manifolds.hyperboloid import from_poincare
     p = random_poincare_point(rng, dim=dim)
     return from_poincare(p)
 
@@ -70,13 +70,13 @@ def random_hyperboloid_tangent(rng: np.random.Generator, p: np.ndarray, scale: f
 
 def random_so3() -> np.ndarray:
     """Construct a random SO(3) rotation via exp of a random axis-angle vector."""
-    from manifold_helpers.manifolds.so3 import exp_map
+    from ophanimus.manifolds.so3 import exp_map
     rng = np.random.default_rng(1)
     return exp_map(rng.uniform(-np.pi / 2, np.pi / 2, size=3))
 
 
 def random_so3_seeded(rng: np.random.Generator) -> np.ndarray:
-    from manifold_helpers.manifolds.so3 import exp_map
+    from ophanimus.manifolds.so3 import exp_map
     return exp_map(rng.uniform(-np.pi / 2, np.pi / 2, size=3))
 
 

@@ -9,12 +9,12 @@ from __future__ import annotations
 
 import numpy as np
 
-from manifold_helpers.manifolds import poincare, hyperboloid, sphere, so3, spd
-from manifold_helpers.algorithms import (
+from ophanimus.manifolds import poincare, hyperboloid, sphere, so3, spd
+from ophanimus.algorithms import (
     frechet_mean, geodesic_interpolate, geodesic_path,
     knn_search, rbf_kernel, manifold_velocities,
 )
-from manifold_helpers.manifold_selection import (
+from ophanimus.manifold_selection import (
     distance_from_features, distance_from_similarity, distance_from_graph,
 )
 

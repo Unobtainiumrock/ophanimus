@@ -2,12 +2,12 @@
 
 ## What we've built is already the right modular piece
 
-`helpers/` (this folder) is a **geometry engine** — pure math with no opinion about what you use it for. The installable package is **`manifold_helpers`** under `src/manifold_helpers/`. It has three clean layers:
+`helpers/` (this folder) is a **geometry engine** — pure math with no opinion about what you use it for. The installable package is **`ophanimus`** under `src/ophanimus/`. It has three clean layers:
 
 ```
-manifold_helpers/manifolds/       Pure math: exp, log, distance, transport, conversions
-manifold_helpers/algorithms/      Generic manifold algorithms: regression, clustering, knn, pga
-manifold_helpers/manifold_selection.py  Geometry detection: "which manifold fits my data?"
+ophanimus/manifolds/       Pure math: exp, log, distance, transport, conversions
+ophanimus/algorithms/      Generic manifold algorithms: regression, clustering, knn, pga
+ophanimus/manifold_selection.py  Geometry detection: "which manifold fits my data?"
 ```
 
 None of this knows about documents, queries, retrieval, embeddings, or Qdrant. That's correct — it shouldn't.
@@ -26,10 +26,10 @@ retrieval-system/
 └── ...
 ```
 
-That project would depend on **`manifold-helpers`** (pip) / `import manifold_helpers` for the math, but owns all the retrieval-specific logic. The hybrid training pipeline maps cleanly:
+That project would depend on **`ophanimus`** (pip) / `import ophanimus` for the math, but owns all the retrieval-specific logic. The hybrid training pipeline maps cleanly:
 
 ```python
-from manifold_helpers.manifolds.hyperboloid import exp_map, from_poincare, log_map, to_poincare
+from ophanimus.manifolds.hyperboloid import exp_map, from_poincare, log_map, to_poincare
 
 # Step A: Lift from Poincaré to Hyperboloid
 x_hyp = from_poincare(x_poincare)
@@ -57,14 +57,14 @@ One thing the retrieval system will need that we don't have yet: **entailment co
 ## The clean split
 
 ```
-helpers/                        # REPO FOLDER — `pip install -e .` exposes manifold_helpers
-  src/manifold_helpers/         #   Python package
+helpers/                        # REPO FOLDER — `pip install -e .` exposes ophanimus
+  src/ophanimus/         #   Python package
     manifolds/                  #   "What are the rules of this space?"
     algorithms/                 #   "What can I compute in any space?"
     manifold_selection.py       #   "Which space fits my data?"
 
 hyperbolic-retrieval/           # APPLICATION — specific to search/retrieval
-  uses manifold_helpers.manifolds for  #   Poincaré/Hyperboloid math
+  uses ophanimus.manifolds for  #   Poincaré/Hyperboloid math
   adds its own:                 #   entailment cones, ANN, hybrid training,
                                 #   embedding models, DB integration
 ```
@@ -125,11 +125,11 @@ sentence-transformers (Euclidean)     Geoopt projection head     Poincaré Ball
 
 - `embedding_model.py` wraps `sentence-transformers` as the base encoder
 - `hybrid_trainer.py` trains the Geoopt projection head with asymmetric contrastive loss
-- `manifold_helpers.manifolds` provides the Poincaré/Hyperboloid math underneath
+- `ophanimus.manifolds` provides the Poincaré/Hyperboloid math underneath
 
 ### Upstream data validation (already built)
 
-Before committing to any of this, validate that the raw data actually benefits from hyperbolic geometry using the tools already in `manifold_helpers.manifold_selection`:
+Before committing to any of this, validate that the raw data actually benefits from hyperbolic geometry using the tools already in `ophanimus.manifold_selection`:
 
 ```python
 from manifold_selection import distance_from_features, select_manifold
