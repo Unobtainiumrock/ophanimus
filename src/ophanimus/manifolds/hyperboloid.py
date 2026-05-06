@@ -102,15 +102,19 @@ def parallel_transport(v: NDArray[np.floating], p: NDArray[np.floating],
         Transported tangent vector at q.
     """
     v, p, q = _f64(v), _f64(p), _f64(q)
-    d = distance(p, q)
-    if d < 1e-10:
+    pq = _minkowski_dot(p, q)
+    denom = 1.0 - pq
+    if abs(denom) < 1e-12:
+        # p == q (or numerically indistinguishable) — PT is the identity
         return v.copy()
-    log_pq = log_map(p, q)
-    log_pq_hat = log_pq / d
-    # v_t = v + <log_pq_hat, v>_M * (-sinh(d)*p + (cosh(d)-1)*log_pq_hat)...
-    # but in Minkowski metric. The clean formula:
-    inner = _minkowski_dot(log_pq_hat, v)
-    return v + inner * ((np.cosh(d) - 1) * log_pq_hat - np.sinh(d) * p)
+    # Standard Lorentz parallel transport along the geodesic from p to q:
+    #   PT_{p→q}(v) = v + (<v, q>_M / (1 - <p, q>_M)) * (p + q)
+    # See Nickel & Kiela 2018, "Learning Continuous Hierarchies in the
+    # Lorentz Model of Hyperbolic Geometry". The previous formulation here
+    # using log_map terms had an algebra error that left the result not
+    # Minkowski-orthogonal to q.
+    coeff = _minkowski_dot(v, q) / denom
+    return v + coeff * (p + q)
 
 
 # ---------------------------------------------------------------------------

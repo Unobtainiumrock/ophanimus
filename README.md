@@ -86,6 +86,41 @@ making it natural for humans to look at and reason about.
 
 In practice: train on the hyperboloid, convert to Poincaré for display.
 
+### Using `ophanimus.hyperbolic` (recommended)
+
+`ophanimus.hyperbolic` packages the engine/dashboard split into drop-in
+primitives. You write code in Poincaré coordinates (the dashboard); the
+math runs through the hyperboloid (the engine). Inputs and outputs are
+all Poincaré-coordinated, so the algorithms in `ophanimus.algorithms`
+work without any modification:
+
+```python
+from ophanimus import hyperbolic
+from ophanimus.algorithms import kmeans, frechet_mean
+
+# Your data is in the Poincaré ball — natural for plotting
+labels, centers = kmeans(
+    points, k=3,
+    exp_map=hyperbolic.exp_map,
+    log_map=hyperbolic.log_map,
+    distance=hyperbolic.distance,
+)
+```
+
+The internals lift each input via `from_poincare`, run the hyperboloid
+implementation, and project the output back via `to_poincare`. Tangent
+vectors transform via the Jacobian of `from_poincare` (push) and its
+inverse (pull). The result is numerically stable up to and well past
+`||p|| = 0.999`, where direct Poincaré compute starts losing bits to
+the `1/(1-||x||²)` blow-up.
+
+This is also strictly more correct than `ophanimus.manifolds.poincare`
+for parallel transport: the latter currently does only conformal scaling
+and is missing the Möbius gyration term (Ganea et al. 2018). The
+hyperbolic dispatch routes through the exact Lorentz parallel transport,
+so geodesic regression and parallel-transport time-series get the right
+answer for free when used with `hyperbolic.*`.
+
 ### Converting between models
 
 ```python

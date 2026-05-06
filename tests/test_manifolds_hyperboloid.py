@@ -52,16 +52,35 @@ def test_to_from_poincare_roundtrip(rng):
         assert np.allclose(p, p_back, atol=1e-12)
 
 
-def test_distance_proportional_to_poincare(rng):
-    """Hyperboloid and Poincaré distances measure the same metric, but the
-    Poincaré implementation uses a radius-2 ball normalization (factor of 2
-    relative to the Lorentz hyperboloid with K=-1). They should be
-    proportional with a fixed scale across all point pairs.
+def test_parallel_transport_lands_in_target_tangent_space(rng):
+    """PT(v at p, p, q) must be Minkowski-orthogonal to q (i.e. in T_q H^n)."""
+    for _ in range(10):
+        p = random_hyperboloid_point(rng)
+        q = random_hyperboloid_point(rng)
+        v = random_hyperboloid_tangent(rng, p, scale=0.3)
+        v_t = hyperboloid.parallel_transport(v, p, q)
+        m_inner = -q[0] * v_t[0] + np.dot(q[1:], v_t[1:])
+        assert abs(m_inner) < 1e-9
 
-    TODO (item 5 follow-up): standardize on one convention.
+
+def test_parallel_transport_preserves_minkowski_norm(rng):
+    """PT is an isometry: ||v||²_M = ||PT(v)||²_M."""
+    for _ in range(10):
+        p = random_hyperboloid_point(rng)
+        q = random_hyperboloid_point(rng)
+        v = random_hyperboloid_tangent(rng, p, scale=0.3)
+        v_t = hyperboloid.parallel_transport(v, p, q)
+        m_norm_p = -v[0] ** 2 + np.dot(v[1:], v[1:])
+        m_norm_q = -v_t[0] ** 2 + np.dot(v_t[1:], v_t[1:])
+        assert abs(m_norm_p - m_norm_q) < 1e-9
+
+
+def test_distance_matches_poincare(rng):
+    """Hyperboloid and Poincaré distances measure the same K=-1 metric.
+    After from_poincare conversion they agree pair-by-pair within fp64
+    tolerance. Convention bug (factor of 2) fixed in 0.2.0.
     """
     from ophanimus.manifolds import poincare
-    ratios = []
     for _ in range(10):
         p_poin = random_poincare_point(rng)
         q_poin = random_poincare_point(rng)
@@ -69,8 +88,4 @@ def test_distance_proportional_to_poincare(rng):
         q_hyp = hyperboloid.from_poincare(q_poin)
         d_hyp = hyperboloid.distance(p_hyp, q_hyp)
         d_poin = poincare.distance(p_poin, q_poin)
-        if d_hyp > 1e-6:
-            ratios.append(d_poin / d_hyp)
-    # All ratios should be equal (the conversion is a fixed scaling)
-    if ratios:
-        assert max(ratios) - min(ratios) < 1e-8
+        assert abs(d_hyp - d_poin) < 1e-8

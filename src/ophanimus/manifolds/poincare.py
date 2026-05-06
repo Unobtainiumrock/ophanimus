@@ -38,7 +38,12 @@ def distance(u: NDArray[np.floating], v: NDArray[np.floating], c: float = 1.0) -
     u_sq = np.linalg.norm(u) ** 2
     v_sq = np.linalg.norm(v) ** 2
     arg = 1 + 2 * c * diff_sq / ((1 - c * u_sq) * (1 - c * v_sq))
-    return (2.0 / sqrt_c) * np.arccosh(arg)
+    # The standard K=-c Poincaré ball geodesic distance has prefactor
+    # 1/sqrt(c) in arccosh form. The previous implementation used 2/sqrt(c),
+    # which is the value of (2/sqrt(c)) * arctanh(sqrt(c)*||M-add||) — the
+    # gyrovector form — but the equivalent arccosh form has prefactor
+    # 1/sqrt(c) (since arctanh(x) = (1/2) arccosh((1+x²)/(1-x²))).
+    return (1.0 / sqrt_c) * np.arccosh(arg)
 
 
 def exp_map(p: NDArray[np.floating], v: NDArray[np.floating], c: float = 1.0) -> NDArray[np.floating]:
