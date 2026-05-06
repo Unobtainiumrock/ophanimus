@@ -2,6 +2,26 @@
 
 All notable changes to ophanimus.
 
+## 0.2.2 — 2026-05-06
+
+### Documentation
+
+- README gains a **Numerical Conventions and Training Dynamics** section
+  documenting the K=−1 distance convention, the gyrovector ↔ arccosh
+  identity (and the 0.2.0 fix for the form-mixing bug), the Möbius
+  gyration concern for adaptive Riemannian optimizers (Riemannian Adam,
+  Momentum SGD), the fp64 boundary-promotion contract, and guidance on
+  when to prefer `ophanimus.hyperbolic.*` over `ophanimus.manifolds.poincare.*`
+  for near-boundary numerical stability.
+- CHANGELOG gains explicit migration-notes subsections under 0.2.0 and
+  0.2.1 covering autograd gradient-magnitude consequences, fixed-margin
+  loss adjustments, RBF/Laplacian bandwidth scaling, and adaptive
+  optimizer momentum-buffer guidance.
+- Filed `HE-API-DOCS` as a future task to surface these conventions
+  prominently in the eventual full docs site.
+
+No code changes vs 0.2.1.
+
 ## 0.2.1 — 2026-05-06
 
 ### Fixed
@@ -29,6 +49,28 @@ All notable changes to ophanimus.
   retained — the hyperboloid module is currently written for `c = 1`
   only, and extending the lift with a c-aware scaling is left as a
   separate task.
+
+### Migration notes (impact on adaptive optimizers)
+
+If you train models with **Riemannian Adam, Riemannian Momentum SGD**,
+or any adaptive optimizer that parallel-transports historical state
+(momentum, second-moment estimates) between parameter steps:
+
+- **Before 0.2.1**: PT was direction-wrong (conformal-scaling only,
+  no gyration). Transported momentum was misaligned with the new
+  parameter's local geometry, injecting drift into the update step
+  and degrading convergence.
+- **From 0.2.1**: PT is direction-correct. Momentum transport now
+  matches the geodesic curvature.
+
+If you have model checkpoints + optimizer state from 0.1.x or 0.2.0,
+the optimizer state was accumulated under a slightly-wrong PT. You can:
+- Continue training (the optimizer will course-correct over a few
+  hundred steps as new gradients dominate the buffers), or
+- Reset optimizer state and re-warm from the existing model weights.
+
+Plain RSGD without momentum (e.g. `geodesic_regression` with line
+search) was unaffected — it never transports historical state.
 
 ### Internal
 
@@ -73,6 +115,39 @@ All notable changes to ophanimus.
   convention), giving values that were exactly twice the K=−1 distance.
   If you were using 0.1.0 and depended on the larger value, halve any
   thresholds in your code, or multiply the result by 2.
+
+### Migration notes (impact on training dynamics)
+
+The distance change is mechanically a 2× rescaling. For most use cases
+within ophanimus that's invariant — `kmeans`/`knn` use `argmin`/`argsort`,
+`manifold_selection` normalizes by a target-sum scale factor,
+`geodesic_regression` computes gradients via `log_map` (not by
+differentiating `distance`), and its line search compares
+`new_loss < current_loss` where both are rescaled by the same factor of
+4 (since loss is `d²`).
+
+For **user code that wraps ophanimus distance in autograd** (PyTorch,
+JAX), every gradient flowing back through `poincare.distance` is now
+half its previous magnitude:
+1. `loss = poincare.distance(y_pred, y_true)**2` is now `1/4` its old value
+2. `∇_E loss` (Euclidean gradient) is halved
+3. `∇_R loss = (1 − c‖x‖²)²/4 · ∇_E loss` (Riemannian gradient) is halved
+4. The optimizer takes a step half the size it previously would have
+
+To recover **exact prior training behavior**, double your learning rate:
+`lr ← 2·lr`. To take advantage of the corrected scale (recommended),
+leave `lr` and accept the slower-but-more-meaningful steps.
+
+For **fixed-margin losses** (contrastive, triplet, etc.), the distances
+in the margin comparison are now half their old values, making any
+fixed margin twice as strict in relative terms. Halve your margin
+hyperparameter to maintain the same boundary strictness:
+`margin ← margin / 2`.
+
+For **RBF / Laplacian kernel bandwidths** (`σ` in `exp(-d²/2σ²)` or
+`exp(-d/σ)`): the same kernel value at the same point pair now occurs at
+σ/2 vs. before, since `d` is halved. Halve `σ` to preserve prior
+similarity behavior.
 
 ### Known issues (filed for later)
 

@@ -439,3 +439,94 @@ labels, centers = kmeans(points, k=5,
     log_map=poincare.log_map,
     distance=poincare.distance)
 ```
+
+## Numerical Conventions and Training Dynamics
+
+Read this section before plugging ophanimus into a training loop —
+especially one that uses autograd or an adaptive Riemannian optimizer.
+The library makes a few specific choices about conventions and
+correctness that affect training dynamics.
+
+### Distance is the standard K=−1 geodesic length
+
+`ophanimus.manifolds.poincare.distance(u, v)` returns the unit-curvature
+hyperbolic geodesic distance with prefactor `1/√c` in the arccosh form:
+
+```
+d(u, v) = (1/√c) · arccosh(1 + 2c‖u-v‖² / ((1-c‖u‖²)(1-c‖v‖²)))
+```
+
+This matches `ophanimus.manifolds.hyperboloid.distance` after
+`from_poincare` conversion. Some references in the literature write the
+gyrovector form `(2/√c)·arctanh(...)`; the `2` there is real (it
+belongs to the arctanh form) but disappears when you convert to
+arccosh form via the identity `arctanh(x) = ½·arccosh((1+x²)/(1-x²))`.
+**The two forms are equal — but mixing them is a bug.** Pre-0.2.0
+ophanimus had this bug; the fix in 0.2.0 returns the correct value.
+
+If you upgrade from 0.1.x and your distance-based loss/threshold/margin
+hyperparameters were tuned empirically, see CHANGELOG.md for migration
+notes — most relevantly: **fixed margins should be halved**, and
+**autograd gradients flowing through `distance` are now half their old
+magnitude** (so doubling your learning rate recovers prior training
+dynamics; leaving it alone uses the corrected scale).
+
+### Parallel transport is direction-correct (uses Lorentz under the hood)
+
+For `c=1`, both `ophanimus.hyperbolic.parallel_transport` and
+`ophanimus.manifolds.poincare.parallel_transport` route through the
+Lorentz hyperboloid for the actual transport, then project back to
+Poincaré coordinates. This means the **Möbius gyration** (the rotation
+that compensates for the curvature of the geodesic, often written
+`gyr[y, ⊖x]`) is included automatically — without ever computing a
+gyration matrix.
+
+Why this matters: the simpler `(λ_p / λ_q) · v` formula (conformal
+scaling only) is norm-preserving but **direction-wrong** along curved
+geodesics. If you use parallel transport in **adaptive Riemannian
+optimizers** (Riemannian Adam, Riemannian Momentum SGD) — which
+parallel-transport historical state (momentum, second-moment buffers)
+between parameter steps — the conformal-only formula injects misaligned
+momentum into the update step and degrades convergence. Pre-0.2.1
+ophanimus shipped with the conformal-only formula. **From 0.2.1
+onward, momentum-based optimizers built on ophanimus get
+geometrically-correct PT.**
+
+For `c ≠ 1` (variable curvature) `poincare.parallel_transport` falls
+back to conformal-scaling only — extending the lift to general
+curvature is a planned follow-up.
+
+### fp64 is enforced at every public boundary
+
+Every public function in ophanimus calls `np.asarray(x, dtype=np.float64)`
+on its array inputs. The numerical-stability tricks in the manifold
+primitives (clipping `arccos`/`arccosh` arguments, `eps` guards in
+`np.maximum`, `arctanh` clamping near the unit interval) are tuned for
+float64; float32 inputs would silently lose precision in those operations.
+
+If you're using a torch/JAX pipeline that prefers fp32 for memory or
+GPU throughput, treat ophanimus calls as boundary nodes: convert to
+fp64 going in (already automatic), and accept fp64 going out. For
+inner training loops that stay in your framework, your framework's
+own primitives will keep things in fp32 — ophanimus only forces fp64
+when you cross into one of its functions.
+
+### Near-boundary stability: prefer the `hyperbolic` dispatch
+
+The Poincaré ball's conformal factor `λ_p = 2/(1-c‖p‖²)` blows up as
+points approach the boundary. The hyperboloid model has no such
+singularity. For points with `‖p‖ > 0.95` or so, prefer
+`ophanimus.hyperbolic.*` callables over `ophanimus.manifolds.poincare.*`:
+
+```python
+from ophanimus import hyperbolic
+from ophanimus.algorithms import kmeans
+
+labels, centers = kmeans(points, k=5,
+    exp_map=hyperbolic.exp_map,
+    log_map=hyperbolic.log_map,
+    distance=hyperbolic.distance)
+```
+
+Verified stable up to and well past `‖p‖ = 0.999` where direct
+Poincaré compute starts losing bits of precision.
