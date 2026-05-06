@@ -1,0 +1,18 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+
+# Local IDE / agent config (often contains machine-specific paths or app context)
+.claude/
+.context/
+
+# Misc
+notes.md
+.mcp.json
