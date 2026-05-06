@@ -62,3 +62,37 @@ def test_curvature_changes_distance(rng):
     d_low = poincare.distance(p, q, c=0.5)
     d_high = poincare.distance(p, q, c=2.0)
     assert d_high > d_low
+
+
+def test_parallel_transport_matches_hyperbolic_dispatch(rng):
+    """For c=1, poincare.PT now routes through the Lorentz hyperboloid;
+    it should agree with ophanimus.hyperbolic.parallel_transport pair-by-pair."""
+    from ophanimus import hyperbolic
+    for _ in range(20):
+        p = random_poincare_point(rng, max_norm=0.6)
+        q = random_poincare_point(rng, max_norm=0.6)
+        v = rng.normal(scale=0.2, size=p.shape)
+        v_direct = poincare.parallel_transport(v, p, q, c=1.0)
+        v_dispatch = hyperbolic.parallel_transport(v, p, q)
+        assert np.allclose(v_direct, v_dispatch, atol=1e-10)
+
+
+def test_parallel_transport_round_trip(rng):
+    """PT(PT(v, p, q), q, p) ≈ v. The conformal-scaling-only formula failed
+    this in any non-trivial 2D+ case; the gyration fix makes it pass."""
+    for _ in range(20):
+        p = random_poincare_point(rng, max_norm=0.6)
+        q = random_poincare_point(rng, max_norm=0.6)
+        v = rng.normal(scale=0.2, size=p.shape)
+        v_q = poincare.parallel_transport(v, p, q, c=1.0)
+        v_back = poincare.parallel_transport(v_q, q, p, c=1.0)
+        assert np.allclose(v, v_back, atol=1e-9)
+
+
+def test_parallel_transport_self_is_identity(rng):
+    """PT to the same point is the identity."""
+    for _ in range(10):
+        p = random_poincare_point(rng)
+        v = rng.normal(scale=0.2, size=p.shape)
+        v_t = poincare.parallel_transport(v, p, p, c=1.0)
+        assert np.allclose(v, v_t, atol=1e-10)

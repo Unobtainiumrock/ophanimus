@@ -114,12 +114,13 @@ inverse (pull). The result is numerically stable up to and well past
 `||p|| = 0.999`, where direct Poincaré compute starts losing bits to
 the `1/(1-||x||²)` blow-up.
 
-This is also strictly more correct than `ophanimus.manifolds.poincare`
-for parallel transport: the latter currently does only conformal scaling
-and is missing the Möbius gyration term (Ganea et al. 2018). The
-hyperbolic dispatch routes through the exact Lorentz parallel transport,
-so geodesic regression and parallel-transport time-series get the right
-answer for free when used with `hyperbolic.*`.
+As of 0.2.1, `ophanimus.manifolds.poincare.parallel_transport` also routes
+through the Lorentz hyperboloid for `c = 1`, so it includes the Möbius
+gyration term (Ganea et al. 2018, Eq. 4) and agrees with
+`ophanimus.hyperbolic.parallel_transport` pair-by-pair. Either entry
+point gives the exact, direction-correct result. (For `c ≠ 1` the
+direct Poincaré path falls back to conformal-scaling only — extending
+the lift to general curvature is a planned follow-up.)
 
 ### Converting between models
 

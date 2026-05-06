@@ -2,6 +2,8 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .._dtype import _f64
+from .._tangent import push_poincare_tangent, pull_poincare_tangent
+from . import hyperboloid as _hyp
 
 
 def _mobius_add(u: NDArray[np.floating], v: NDArray[np.floating], c: float = 1.0) -> NDArray[np.floating]:
@@ -105,9 +107,29 @@ def log_map(p: NDArray[np.floating], q: NDArray[np.floating], c: float = 1.0) ->
 def parallel_transport(v: NDArray[np.floating], p: NDArray[np.floating], q: NDArray[np.floating], c: float = 1.0) -> NDArray[np.floating]:
     """Parallel transport in the Poincaré ball model D^n.
 
-    Transports tangent vector v at point p to the tangent space at q
-    along the geodesic. Uses the conformal factor ratio, which is
-    exact for the Poincaré ball's conformally flat geometry.
+    Transports tangent vector ``v`` at ``p`` to the tangent space at ``q``
+    along the unique geodesic. The exact K=−1 formula (Ganea, Bécigneul,
+    Hofmann 2018) is::
+
+        PT_{p→q}(v) = (λ_p / λ_q) · gyr[q, ⊖p](v)
+
+    where ``λ_x = 2/(1 − c‖x‖²)`` is the conformal factor and ``gyr[a, b]``
+    is the Möbius gyration — a rotation of the tangent space that
+    compensates for the curvature of the geodesic. The conformal-scaling
+    term ``(λ_p / λ_q) · v`` (used by previous releases) has the right
+    magnitude but the wrong direction along curved geodesics.
+
+    Implementation: for ``c = 1`` we route through the Lorentz hyperboloid
+    via ``from_poincare`` / hyperboloid PT / ``to_poincare``. The Lorentz
+    connection is just Minkowski-orthogonal projection — no gyrogroup
+    bookkeeping required — so the gyration falls out of the round-trip.
+    The Möbius gyration formula written directly is *not* a linear
+    function of ``v`` for finite-magnitude tangents, so the lift/transport/
+    project route is both cleaner and correct.
+
+    For ``c ≠ 1`` we currently fall back to the conformal-scaling
+    approximation. The hyperboloid module is written for ``c = 1`` only;
+    extending the lift to general curvature is a separate task.
 
     Parameters
     ----------
@@ -118,7 +140,7 @@ def parallel_transport(v: NDArray[np.floating], p: NDArray[np.floating], q: NDAr
     q : NDArray
         Destination point in the Poincaré ball.
     c : float
-        Curvature parameter (c > 0).
+        Curvature parameter (c > 0). Only ``c = 1`` uses the exact formula.
 
     Returns
     -------
@@ -126,6 +148,16 @@ def parallel_transport(v: NDArray[np.floating], p: NDArray[np.floating], q: NDAr
         Transported tangent vector at q.
     """
     v, p, q = _f64(v), _f64(p), _f64(q)
-    lambda_p = 2.0 / (1.0 - c * np.dot(p, p))
-    lambda_q = 2.0 / (1.0 - c * np.dot(q, q))
-    return (lambda_p / lambda_q) * v
+    if c != 1.0:
+        # Conformal-scaling approximation. Norm-preserving but
+        # direction-incorrect along curved geodesics. TODO: lift with
+        # c-aware scaling for a general-c exact formula.
+        lambda_p = 2.0 / (1.0 - c * np.dot(p, p))
+        lambda_q = 2.0 / (1.0 - c * np.dot(q, q))
+        return (lambda_p / lambda_q) * v
+    # c = 1.0: lift to hyperboloid, transport, project back.
+    p_hyp = _hyp.from_poincare(p)
+    q_hyp = _hyp.from_poincare(q)
+    v_hyp_at_p = push_poincare_tangent(v, p)
+    v_hyp_at_q = _hyp.parallel_transport(v_hyp_at_p, p_hyp, q_hyp)
+    return pull_poincare_tangent(v_hyp_at_q, q)

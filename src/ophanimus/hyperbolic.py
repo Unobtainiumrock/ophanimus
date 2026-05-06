@@ -71,40 +71,9 @@ import numpy as np
 from numpy.typing import NDArray
 
 from ._dtype import _f64
+from ._tangent import push_poincare_tangent as _push_tangent  # private alias for back-compat
+from ._tangent import pull_poincare_tangent as _pull_tangent  # private alias for back-compat
 from .manifolds import hyperboloid as _hyp
-
-
-# ---------------------------------------------------------------------------
-# Tangent-space conversions (private — the public primitives use them)
-# ---------------------------------------------------------------------------
-
-def _push_tangent(v_poin: NDArray[np.floating], p_poin: NDArray[np.floating]) -> NDArray[np.floating]:
-    """Push a Poincaré tangent at ``p_poin`` to a hyperboloid tangent at ``from_poincare(p_poin)``.
-
-    Uses the Jacobian of the from_poincare map. Result is Minkowski-orthogonal
-    to from_poincare(p_poin).
-    """
-    v_poin = _f64(v_poin)
-    p_poin = _f64(p_poin)
-    s = 1.0 - np.dot(p_poin, p_poin)
-    pv = np.dot(p_poin, v_poin)
-    v0 = 4.0 * pv / (s * s)
-    v_spatial = 2.0 * v_poin / s + v0 * p_poin
-    out = np.empty(p_poin.shape[0] + 1, dtype=np.float64)
-    out[0] = v0
-    out[1:] = v_spatial
-    return out
-
-
-def _pull_tangent(v_hyp: NDArray[np.floating], p_poin: NDArray[np.floating]) -> NDArray[np.floating]:
-    """Pull a hyperboloid tangent at ``from_poincare(p_poin)`` back to a Poincaré tangent at ``p_poin``.
-
-    Inverse of ``_push_tangent`` on the tangent space at p_poin.
-    """
-    v_hyp = _f64(v_hyp)
-    p_poin = _f64(p_poin)
-    s = 1.0 - np.dot(p_poin, p_poin)
-    return (s / 2.0) * (v_hyp[1:] - v_hyp[0] * p_poin)
 
 
 # ---------------------------------------------------------------------------

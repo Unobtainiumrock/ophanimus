@@ -2,6 +2,42 @@
 
 All notable changes to ophanimus.
 
+## 0.2.1 — 2026-05-06
+
+### Fixed
+
+- **`ophanimus.manifolds.poincare.parallel_transport`** now includes the
+  Möbius gyration term (Ganea, Bécigneul, Hofmann 2018, Eq. 4). Previous
+  releases used the conformal-scaling-only formula `(λ_p / λ_q) · v`,
+  which preserved the metric inner product magnitude but had the wrong
+  direction along the (curved) geodesic.
+
+  The fix routes the c=1 case through the Lorentz hyperboloid:
+  `from_poincare → push tangent → hyperboloid PT → pull tangent →
+  to_poincare`. The Lorentz connection has no gyrogroup bookkeeping,
+  so the gyration falls out of the round-trip exactly. Verified by
+  three new tests in `tests/test_manifolds_poincare.py`:
+  - `test_parallel_transport_matches_hyperbolic_dispatch` — pair-by-pair
+    agreement with `ophanimus.hyperbolic.parallel_transport` within `1e-10`.
+  - `test_parallel_transport_round_trip` — `PT(PT(v, p, q), q, p) ≈ v`,
+    a property the previous formula failed in 2D+.
+  - `test_parallel_transport_self_is_identity`.
+
+  Closes HE-PT-MOBIUS-GYRATION.
+
+  For `c ≠ 1` (variable curvature), the conformal-scaling fallback is
+  retained — the hyperboloid module is currently written for `c = 1`
+  only, and extending the lift with a c-aware scaling is left as a
+  separate task.
+
+### Internal
+
+- Factored push/pull tangent-vector helpers between Poincaré and
+  hyperboloid into a new internal module `ophanimus._tangent`. Used by
+  both `ophanimus.hyperbolic` (engine/dashboard primitives) and the
+  rewritten `ophanimus.manifolds.poincare.parallel_transport`. Private
+  aliases preserved in `ophanimus.hyperbolic` for back-compat.
+
 ## 0.2.0 — 2026-05-06
 
 ### Added
