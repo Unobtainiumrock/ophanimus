@@ -1,5 +1,7 @@
 # Ophanimus
 
+> **Not to be confused with Ophanimus, Inc.** This repository and the `ophanimus` PyPI package are an earlier, unrelated research library for Riemannian geometry by the same author. The company Ophanimus, Inc. (one plan for people and coding agents) lives at [ophanimus.com](https://ophanimus.com/) and [github.com/ophanimus-inc](https://github.com/ophanimus-inc).
+
 **Riemannian manifold primitives and geodesic algorithms** — pure geometry, no retrieval stack, no vector DB, no training loops for text embeddings.
 
 ## Install
